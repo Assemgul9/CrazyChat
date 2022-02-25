@@ -53,6 +53,7 @@ public class HelloController implements Initializable {
     private Stage stage;
     private Stage regStage;
     private RegController regController;
+    private String login;
 
     public void setAuthenticated(boolean authenticated) {
         this.authenticated = authenticated;
@@ -65,11 +66,10 @@ public class HelloController implements Initializable {
 
         if(!authenticated){
             nickname = "";
+            History.stop();
         }
-
         setTitle(nickname);
         textArea.clear();
-
     }
 
     @Override
@@ -86,15 +86,12 @@ public class HelloController implements Initializable {
                     }
                 }
             });
-
         });
         setAuthenticated(false);
-
     }
 
     @FXML
     public void clickButton(ActionEvent actionEvent) {
-
         if (textField.getText().length()>0) {
             try {
                 out.writeUTF(textField.getText());
@@ -103,24 +100,18 @@ public class HelloController implements Initializable {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-
         }
     }
-
-
 
     public void connect (){
         try {
             socket = new Socket(ADDRESS, PORT);
-
             in = new DataInputStream(socket.getInputStream());
             out = new DataOutputStream(socket.getOutputStream());
 
             new Thread(() -> {
                 try {
-
                     //цикл аутентификации
-
                     while (true) {
                         String str = in.readUTF();
 
@@ -131,6 +122,8 @@ public class HelloController implements Initializable {
                             if (str.startsWith("/authOK")) {
                                 nickname = str.split(" ")[0];
                                 setAuthenticated(true);
+                                textArea.appendText(History.getlast100LinesHistory(login));
+                                History.start(login);
                                 break;
                             }
                             if (str.startsWith("/reg")) {
@@ -142,13 +135,9 @@ public class HelloController implements Initializable {
 
                         }
                     }
-
                     //цикл работы
                     while (authenticated) {
                         String str = in.readUTF();
-
-
-
                         if (str.startsWith("/")) {
                             if (str.equals("/end")) {
                                 setAuthenticated(false);
@@ -161,27 +150,21 @@ public class HelloController implements Initializable {
                                     for (int i = 1; i < token.length; i++) {
                                         clientList.getItems().add(token[i]);
                                     }
-
                                 });
                             }
                             if(str.startsWith("/yournickis ")){
                                 nickname = str.split(" ")[1];
                                 setTitle(nickname);
                             }
-
-
-
-
                         } else {
-
                             textArea.appendText(str + "\n");
+                            History.wrightLine(str);
                         }
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
                 }finally {
                     try {
-
                         socket.close();
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -199,7 +182,6 @@ public class HelloController implements Initializable {
         if(socket == null || socket.isClosed()){
             connect();
         }
-
         try{
             String message = String.format("/auth %s %s",
                     loginField.getText().trim(),passwordField.getText().trim());
@@ -208,7 +190,6 @@ public class HelloController implements Initializable {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
     private void setTitle(String nickname){
         String title;
@@ -217,18 +198,14 @@ public class HelloController implements Initializable {
         }else {
             title = String.format("Chat = %s", nickname);
         }
-
         Platform.runLater(() -> {
-
             stage.setTitle(title);
-
         });
     }
 
     public void clickClientList(MouseEvent mouseEvent) {
         String receiver = clientList.getSelectionModel().getSelectedItem();
         textField.setText("/w" +" " + receiver + " ");
-
     }
 
     public void clickButtonReg(ActionEvent actionEvent) {
@@ -237,8 +214,6 @@ public class HelloController implements Initializable {
             createRegWindow();
         }
         regStage.show();
-
-
     }
 
     private void createRegWindow(){
@@ -256,11 +231,9 @@ public class HelloController implements Initializable {
 
             regStage.show();
 
-
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
 
     public void tryToReg(String login, String password, String nickname){
@@ -273,6 +246,5 @@ public class HelloController implements Initializable {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
 }
